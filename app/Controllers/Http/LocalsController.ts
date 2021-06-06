@@ -1,5 +1,5 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-
+import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Local from 'App/Models/Local'
 
 export default class LocalsController {
@@ -118,24 +118,48 @@ export default class LocalsController {
   public async create({ auth, request, response }: HttpContextContract) {
     await auth.use('api').authenticate()
 
-    const { name, lat, lng, userId } = request.only(['name', 'lat', 'lng', 'userId'])
-    const coordinate = lat + ', ' + lng
+    const localSchema = schema.create({
+      name: schema.string({ trim: true }),
+      lat: schema.number(),
+      lng: schema.number(),
+      userId: schema.number([rules.exists({ table: 'users', column: 'id' })]),
+    })
+
+    const data = await request.validate({ schema: localSchema })
+
+    const coordinate = data.lat + ', ' + data.lng
 
     if (!this.isValidCoordinates(coordinate)) {
-      return response.status(400).send({ message: 'Invalid coordinate' })
+      return response.status(400).send({
+        errors: [
+          {
+            rule: 'invalid',
+            field: 'lat,lng',
+            message: 'Invalid coordinate',
+          },
+        ],
+      })
     }
 
-    const localFind = await Local.findBy('lat', lat)
+    const localFind = await Local.findBy('lat', data.lat)
 
     if (localFind) {
-      if (localFind.lng === lng) {
-        return response.status(400).send({ message: 'Cannot repeat coordinate' })
+      if (localFind.lng === data.lng) {
+        return response.status(400).send({
+          errors: [
+            {
+              rule: 'exists',
+              field: 'lat,lng',
+              message: 'exists validation failure',
+            },
+          ],
+        })
       }
     }
 
-    const local = await Local.create({ name, lat, lng, userId })
+    const local = await Local.create(data)
 
-    return local
+    return response.json({ local })
   }
   public async update({ auth, request, response }: HttpContextContract) {
     await auth.use('api').authenticate()
@@ -146,11 +170,27 @@ export default class LocalsController {
     const { name, lat, lng, userId } = request.only(['name', 'lat', 'lng', 'userId'])
 
     if (local.userId !== (userToken && userToken.id)) {
-      return response.status(403).send({ message: 'Forbidden access!' })
+      return response.status(403).send({
+        errors: [
+          {
+            rule: 'permission',
+            field: 'userId',
+            message: 'Forbidden access',
+          },
+        ],
+      })
     } else {
       const coordinate = lat + ', ' + lng
       if (!this.isValidCoordinates(coordinate)) {
-        return response.status(400).send({ message: 'Invalid coordinate' })
+        return response.status(400).send({
+          errors: [
+            {
+              rule: 'invalid',
+              field: 'lat,lng',
+              message: 'Invalid coordinate',
+            },
+          ],
+        })
       }
       local.name = name
       local.lat = lat

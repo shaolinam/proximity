@@ -1,5 +1,6 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Appreciatelocal from 'App/Models/Appreciatelocal'
+import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
 export default class AppreciatelocalsController {
   public async index({ auth }: HttpContextContract) {
@@ -26,15 +27,20 @@ export default class AppreciatelocalsController {
     return appreciatelocals
   }
 
-  public async create({ auth, request }) {
+  public async create({ auth, request, response }) {
     await auth.use('api').authenticate()
-    const { rating, comment, userId, localId } = request.only([
-      'rating',
-      'comment',
-      'userId',
-      'localId',
-    ])
-    const appreciatelocal = await Appreciatelocal.create({ rating, comment, userId, localId })
-    return appreciatelocal
+
+    const localSchema = schema.create({
+      comment: schema.string({ trim: true }, [rules.minLength(3), rules.maxLength(200)]),
+      rating: schema.number([rules.range(1, 5)]),
+      userId: schema.number([rules.exists({ table: 'users', column: 'id' })]),
+      localId: schema.number([rules.exists({ table: 'locals', column: 'id' })]),
+    })
+
+    const data = await request.validate({ schema: localSchema })
+
+    const appreciatelocal = await Appreciatelocal.create(data)
+
+    return response.json(appreciatelocal)
   }
 }
