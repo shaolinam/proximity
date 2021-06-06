@@ -49,22 +49,24 @@ export default class LocalsController {
       }
       const distance = this.getDistanceFromLatLonInKm(position1, position2)
       return {
-        from: {
-          lat: lat,
-          lng: lng,
-        },
-        to: {
-          lat: l.lat,
-          lng: l.lng,
-          userId: l.userId,
-        },
+        lat: l.lat,
+        lng: l.lng,
+        userId: l.userId,
         distanceMeter: distance,
       }
     })
 
-    const localsMap = this.sortByDistance(coord)
+    const localsMapSort = this.sortByDistance(coord)
 
-    return localsMap
+    const localsResult = {
+      from: {
+        lat: lat,
+        lng: lng,
+      },
+      to: localsMapSort,
+    }
+
+    return localsResult
   }
   public async myLocalsMap({ auth, request, response }: HttpContextContract) {
     await auth.use('api').authenticate()
@@ -89,22 +91,24 @@ export default class LocalsController {
       }
       const distance = this.getDistanceFromLatLonInKm(position1, position2)
       return {
-        from: {
-          lat: lat,
-          lng: lng,
-        },
-        to: {
-          lat: l.lat,
-          lng: l.lng,
-          userId: l.userId,
-        },
+        lat: l.lat,
+        lng: l.lng,
+        userId: l.userId,
         distanceMeter: distance,
       }
     })
 
-    const localsMap = this.sortByDistance(coord)
+    const localsMapSort = this.sortByDistance(coord)
 
-    return localsMap
+    const localsResult = {
+      from: {
+        lat: lat,
+        lng: lng,
+      },
+      to: localsMapSort,
+    }
+
+    return localsResult
   }
 
   public isValidCoordinates(coordinates) {
